@@ -6,7 +6,7 @@ from strategy_interface import Strategy
 from game_stats import GameStats
 from default_strategy import DefaultStrategy
 from tabulate import tabulate
-from strategies import AggressiveBoingStrategy, LineCompletionStrategy, BalancedStrategy, RandomStrategy, MaxNumberStrategy
+from strategies import AggressiveBoingStrategy, LineCompletionStrategy, BalancedStrategy, RandomStrategy, MaxNumberStrategy, ChainReactionMaximiser
 
 @dataclass
 class SimulationResults:
@@ -58,7 +58,8 @@ def compare_strategies(num_games: int = 100) -> None:
         LineCompletionStrategy(),
         BalancedStrategy(),
         RandomStrategy(),
-        MaxNumberStrategy()
+        MaxNumberStrategy(),
+        ChainReactionMaximiser()
     ]
     
     results = []
@@ -96,4 +97,4 @@ def compare_strategies(num_games: int = 100) -> None:
     print(f"  Boing count: {best_strategy.best_game.boing_count}")
 
 if __name__ == "__main__":
-    compare_strategies(num_games=100)
+    compare_strategies(num_games=420)
