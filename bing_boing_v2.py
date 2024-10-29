@@ -208,7 +208,7 @@ def play_game():
             break
             
         try:
-            red, white1, white2 = map(int, dice_input.split())
+            red, white1, white2 = map(int, list(dice_input))
             playable_options = generate_options(red, white1, white2)
             print("Playable options:", playable_options)
 
@@ -221,7 +221,7 @@ def play_game():
                 print("No valid options available.")
                 
         except ValueError:
-            print("Invalid input. Please enter three numbers separated by spaces (e.g., '3 5 6')")
+            print("Invalid input. Please enter three numbers without spaces (e.g., '356')")
 
 # Initialize and start the game
 print("Welcome to Bing Boing!")
