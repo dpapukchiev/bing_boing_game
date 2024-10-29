@@ -4,7 +4,9 @@ import statistics
 from bing_boing_game import BingBoingGame
 from strategy_interface import Strategy
 from game_stats import GameStats
-from number_state import NumberState
+from default_strategy import DefaultStrategy
+from tabulate import tabulate
+from strategies import AggressiveBoingStrategy, LineCompletionStrategy, BalancedStrategy, RandomStrategy, MaxNumberStrategy
 
 @dataclass
 class SimulationResults:
@@ -29,7 +31,6 @@ def run_simulation(strategy: Strategy, num_games: int = 100) -> SimulationResult
         stats = game.simulate_game()
         games.append(stats)
     
-    # Sort games by efficiency for finding best/worst games
     sorted_games = sorted(games, key=lambda x: (
         x.boing_efficiency,
         x.marks_per_turn,
@@ -49,32 +50,50 @@ def run_simulation(strategy: Strategy, num_games: int = 100) -> SimulationResult
         all_games=games
     )
 
-def print_simulation_results(results: SimulationResults):
-    """Print formatted simulation results"""
-    print(f"\nSimulation Results for {results.strategy_name}")
-    print("=" * 50)
-    print(f"Games played: {results.games_played}")
-    print(f"Average turns per game: {results.avg_turns:.2f}")
-    print(f"Average boing efficiency: {results.avg_boing_efficiency:.2f}%")
-    print(f"Average marks per turn: {results.avg_marks_per_turn:.2f}")
-    print(f"Win rate: {results.win_rate:.2f}%")
+def compare_strategies(num_games: int = 100) -> None:
+    """Run simulations for all strategies and compare results"""
+    strategies = [
+        DefaultStrategy(),
+        AggressiveBoingStrategy(),
+        LineCompletionStrategy(),
+        BalancedStrategy(),
+        RandomStrategy(),
+        MaxNumberStrategy()
+    ]
     
-    print("\nBest Game:")
-    print(f"  Turns: {results.best_game.turns_taken}")
-    print(f"  Boing efficiency: {results.best_game.boing_efficiency:.2f}%")
-    print(f"  Marks per turn: {results.best_game.marks_per_turn:.2f}")
-    print(f"  Boing count: {results.best_game.boing_count}")
+    results = []
+    for strategy in strategies:
+        print(f"\nRunning simulation for {strategy.__class__.__name__}...")
+        result = run_simulation(strategy, num_games)
+        results.append(result)
     
-    print("\nWorst Game:")
-    print(f"  Turns: {results.worst_game.turns_taken}")
-    print(f"  Boing efficiency: {results.worst_game.boing_efficiency:.2f}%")
-    print(f"  Marks per turn: {results.worst_game.marks_per_turn:.2f}")
-    print(f"  Boing count: {results.worst_game.boing_count}")
+    # Create comparison table
+    headers = ["Strategy", "Avg Turns", "Boing Efficiency", "Marks/Turn", "Average Boing Count"]
+    table_data = []
+    
+    for result in results:
+        table_data.append([
+            result.strategy_name,
+            f"{result.avg_turns:.2f}",
+            f"{result.avg_boing_efficiency:.2f}%",
+            f"{result.avg_marks_per_turn:.2f}",
+            f"{result.avg_boing_count:.2f}"
+        ])
+    
+    # Sort by average boing count
+    table_data.sort(key=lambda x: float(x[4]), reverse=True)
+    
+    print("\nStrategy Comparison:")
+    print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    
+    # Print detailed results for best strategy
+    best_strategy = max(results, key=lambda x: x.avg_boing_efficiency)
+    print(f"\nBest Strategy: {best_strategy.strategy_name}")
+    print(f"Best game performance:")
+    print(f"  Turns: {best_strategy.best_game.turns_taken}")
+    print(f"  Boing efficiency: {best_strategy.best_game.boing_efficiency:.2f}%")
+    print(f"  Marks per turn: {best_strategy.best_game.marks_per_turn:.2f}")
+    print(f"  Boing count: {best_strategy.best_game.boing_count}")
 
 if __name__ == "__main__":
-    # Example usage
-    from default_strategy import DefaultStrategy
-    
-    strategy = DefaultStrategy()
-    results = run_simulation(strategy, num_games=100)
-    print_simulation_results(results)
+    compare_strategies(num_games=100)
