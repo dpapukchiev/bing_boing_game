@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from default_strategy import DefaultStrategy
 
 class BingBoingGame:
@@ -159,19 +160,31 @@ class BingBoingGame:
         else:
             print("No valid options available.")
             return False
-
+        
+    def roll_dice(self):
+        """Simulate rolling the dice"""
+        red = random.randint(1, 6)
+        white1 = random.randint(1, 6)
+        white2 = random.randint(1, 6)
+        print(f"\nRolled: Red={red}, White1={white1}, White2={white2}")
+        return red, white1, white2
+    
     def play_game(self):
         """Run the interactive game loop"""
         print("\nEnter dice values as three digits (e.g., '356')")
+        print("Press 'a' for auto-roll")
         print("Enter 'q' to quit\n")
         
         while True:
-            dice_input = input("Dice values: ").strip().lower()
+            dice_input = input("Dice values or command: ").strip().lower()
             if dice_input == 'q':
                 break
-                
-            try:
-                red, white1, white2 = map(int, list(dice_input))
+            elif dice_input == 'a':
+                red, white1, white2 = self.roll_dice()
                 self.play_turn(red, white1, white2)
-            except ValueError:
-                print("Invalid input. Please enter three digits without spaces (e.g., '356')")
+            else:
+                try:
+                    red, white1, white2 = map(int, list(dice_input))
+                    self.play_turn(red, white1, white2)
+                except ValueError:
+                    print("Invalid input. Please enter three digits without spaces (e.g., '356') or 'a' for auto-roll")
