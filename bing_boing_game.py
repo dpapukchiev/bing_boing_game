@@ -2,11 +2,12 @@ import json
 import os
 import random
 from default_strategy import DefaultStrategy
+from game_stats import GameStats
 
 class BingBoingGame:
     """Main game class implementing the Bing Boing game logic"""
     
-    OPTIONS = [
+    ROWS_AND_COLUMNS = [
         # rows
         [1, 2, 3, 4],
         [5, 6, 7, 8],
@@ -41,16 +42,17 @@ class BingBoingGame:
         [43, 54, 62, 66]
     ]
 
-    def __init__(self, strategy=None, save_file="game_state.json"):
+    def __init__(self, strategy=None, save_file="game_state.json", simulation_mode=False):
         self.save_file = save_file
         self.strategy = strategy or DefaultStrategy()
+        self.simulation_mode = simulation_mode
         self.game_state = None
         self.turns_taken = 0
         self.game_won = False
 
     def initialize_game(self):
         """Initialize the game by either loading a saved state or starting fresh"""
-        if os.path.exists(self.save_file):
+        if not self.simulation_mode and os.path.exists(self.save_file):
             while True:
                 choice = input("Saved game found. Load it? (y/n): ").strip().lower()
                 if choice in ['y', 'n']:
@@ -72,7 +74,7 @@ class BingBoingGame:
 
     def get_all_numbers(self):
         """Returns a set of all numbers in the game grid"""
-        return set(num for option in self.OPTIONS for num in option)
+        return set(num for option in self.ROWS_AND_COLUMNS for num in option)
 
     def save_game_state(self):
         """Save the current game state to a file"""
@@ -107,7 +109,7 @@ class BingBoingGame:
         updated = True
         while updated:
             updated = False
-            for option in self.OPTIONS:
+            for option in self.ROWS_AND_COLUMNS:
                 option_status = [self.game_state[str(num)] for num in option]
                 not_crossed_count = sum(1 for state in option_status if state == 'not_crossed')
                 
@@ -130,7 +132,7 @@ class BingBoingGame:
             
         # Check if any remaining numbers can form valid pairs
         # This is a simple check - you might want to make it more sophisticated
-        for option in self.OPTIONS:
+        for option in self.ROWS_AND_COLUMNS:
             uncrossed_in_option = sum(1 for num in option 
                                     if self.game_state[str(num)] == 'not_crossed')
             if uncrossed_in_option > 1:
@@ -161,6 +163,48 @@ class BingBoingGame:
             options.add(int(f"{white}{red}"))
 
         return sorted(num for num in options if num > 0 and num in playable_numbers)
+    
+    def simulate_game(self) -> GameStats:
+        """Run a complete game simulation with random dice rolls"""
+        self.new_game()
+        
+        while not self.game_won:
+            red, white1, white2 = self.roll_dice()
+            if not self.simulation_mode:
+                print(f"\nRolled: Red={red}, White1={white1}, White2={white2}")
+            
+            playable_options = self.generate_options(red, white1, white2)
+            
+            if playable_options:
+                best_choice = self.strategy.select_best_option(playable_options, self.game_state, self.ROWS_AND_COLUMNS)
+                if not self.simulation_mode:
+                    print(f"Choosing: {best_choice}")
+                self.mark_number(best_choice)
+                self.turns_taken += 1
+            
+            self.check_win_condition()
+            
+            if not self.simulation_mode:
+                self.display_state()
+        
+        return self.collect_stats()
+    
+    def collect_stats(self) -> GameStats:
+        """Collect and return game statistics"""
+        bing_count = sum(1 for state in self.game_state.values() if state == 'bing')
+        boing_count = sum(1 for state in self.game_state.values() if state == 'boing')
+        total_marked = bing_count + boing_count
+        
+        return GameStats(
+            turns_taken=self.turns_taken,
+            bing_count=bing_count,
+            boing_count=boing_count,
+            total_marked=total_marked,
+            boing_efficiency=boing_count / total_marked * 100 if total_marked > 0 else 0,
+            marks_per_turn=total_marked / self.turns_taken if self.turns_taken > 0 else 0,
+            won=self.game_won,
+            final_state=self.game_state.copy()
+        )
 
     def display_state(self):
         """Display the current game state"""
@@ -170,7 +214,7 @@ class BingBoingGame:
         boing_count = sum(1 for state in self.game_state.values() if state == 'boing')
         remaining_count = sum(1 for state in self.game_state.values() if state == 'not_crossed')
         
-        for option in self.OPTIONS:
+        for option in self.ROWS_AND_COLUMNS:
             display_option = []
             for num in option:
                 state = self.game_state[str(num)]
@@ -200,7 +244,7 @@ class BingBoingGame:
         print("Playable options:", playable_options)
 
         if playable_options:
-            best_choice = self.strategy.select_best_option(playable_options, self.game_state, self.OPTIONS)
+            best_choice = self.strategy.select_best_option(playable_options, self.game_state, self.ROWS_AND_COLUMNS)
             print("Best choice to maximize boings:", best_choice)
             self.mark_number(best_choice)
             self.turns_taken += 1
@@ -233,7 +277,10 @@ class BingBoingGame:
         print(f"Average marks per turn: {(total_marked / self.turns_taken):.1f}")
 
     def play_game(self):
-        """Run the interactive game loop"""
+        """Run the interactive game loop with simulation mode support"""
+        if self.simulation_mode:
+            return self.simulate_game()
+            
         print("\nEnter dice values as three digits (e.g., '356')")
         print("Press 'a' for auto-roll")
         print("Enter 'q' to quit\n")
@@ -251,3 +298,5 @@ class BingBoingGame:
                     self.play_turn(red, white1, white2)
                 except ValueError:
                     print("Invalid input. Please enter three digits without spaces (e.g., '356') or 'a' for auto-roll")
+        
+        return self.collect_stats()     

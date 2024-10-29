@@ -28,7 +28,6 @@ class DefaultStrategy(Strategy):
     
     def _check_boing_potential(self, number, game_state, options):
         boing_potential = 0
-        str_number = str(number)
         
         for option in options:
             if number in option:
