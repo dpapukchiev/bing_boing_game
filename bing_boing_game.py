@@ -5,49 +5,17 @@ from typing import Dict, List, Set, Tuple
 from default_strategy import DefaultStrategy
 from number_state import NumberState
 from game_stats import GameStats
+from map import FileMap
 
 class BingBoingGame:
     """Main game class implementing the Bing Boing game logic"""
-    
-    OPTIONS: List[List[int]] = [
-        # rows
-        [1, 2, 3, 4],
-        [5, 6, 7, 8],
-        [9, 10, 11, 12],
-        [13, 14, 15, 16],
-        [25, 26, 31],
-        [21, 22, 23, 24],
-        [35, 36, 41, 42],
-        [32, 33, 34],
-        [43, 44, 45, 46],
-        [51, 52, 53, 54],
-        [55, 56, 61, 62],
-        [63, 64, 65, 66],
-        
-        # columns
-        [1, 5, 9, 16],
-        [2, 6, 10],
-        [3, 7, 11],
-        [4, 8, 12, 21],
-        
-        [13, 25, 35],
-        [14, 26, 36],
-        [15, 31, 41],
-        [42, 51, 55, 63],
-        
-        [22, 32, 44],
-        [23, 33, 45],
-        [24, 34, 46],
-        
-        [52, 56, 64],
-        [53, 61, 65],
-        [43, 54, 62, 66]
-    ]
 
-    def __init__(self, strategy=None, save_file: str = "game_state.json", simulation_mode: bool = False):
+    def __init__(self, strategy=None, save_file: str = "game_state.json", simulation_mode: bool = False, map: str = "./maps/blue.csv"):
         self.save_file = save_file
         self.strategy = strategy or DefaultStrategy()
         self.simulation_mode = simulation_mode
+        self.map = FileMap(map)
+        self.OPTIONS: List[List[int]] = self.map.find_consecutive_coordinates()
         self.game_state: Dict[str, NumberState] = {}
         self.turns_taken: int = 0
         self.game_won: bool = False
@@ -185,13 +153,14 @@ class BingBoingGame:
         remaining_count = sum(1 for state in self.game_state.values() 
                             if state == NumberState.not_crossed)
         
-        for option in self.OPTIONS:
-            display_option = []
-            for num in option:
-                state = self.game_state[str(num)]
-                symbol = 'O' if state == NumberState.boing else 'X' if state == NumberState.bing else '...'
-                display_option.append(f"{num}[{symbol}]")
-            print(" | ".join(display_option))
+        self.map.display_map(self.game_state)
+        # for option in self.OPTIONS:
+        #     display_option = []
+        #     for num in option:
+        #         state = self.game_state[str(num)]
+        #         symbol = 'O' if state == NumberState.boing else 'X' if state == NumberState.bing else '...'
+        #         display_option.append(f"{num}[{symbol}]")
+        #     print(" | ".join(display_option))
 
         print(f"\nTurns taken: {self.turns_taken}")
         print(f"Total bings (X): {bing_count}")

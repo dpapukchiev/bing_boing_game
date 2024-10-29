@@ -1,4 +1,5 @@
 from default_strategy import DefaultStrategy
+from map import FileMap
 from strategies import (
     AggressiveBoingStrategy,
     LineCompletionStrategy,
@@ -54,17 +55,38 @@ def get_strategy_choice() -> Type:
         print("\nInvalid input. Using Balanced Strategy (best performance).")
         return BalancedStrategy
 
+def get_map_choice() -> str:
+    """Prompts the user to choose a map (blue or yellow) and returns the file path."""
+    print("\nAvailable maps:")
+    print("-" * 50)
+    print("1. Blue Map")
+    print("2. Yellow Map")
+    print("-" * 50)
+    
+    choice = input("Select map number (1 or 2): ").strip()
+    if choice == "1":
+        print("\nUsing Blue Map")
+        return "./maps/blue.csv"
+    elif choice == "2":
+        print("\nUsing Yellow Map")
+        return "./maps/yellow.csv"
+    else:
+        print("\nInvalid choice. Defaulting to Blue Map.")
+        return "./maps/blue.csv"
+
 def main():
     """Main entry point for the game"""
     print("Welcome to Bing Boing!")
     
-    # Get strategy selection from user
+    # Get strategy and map selections from user
     SelectedStrategy = get_strategy_choice()
+    selected_map = get_map_choice()
     
     # Initialize and start the game
     game = BingBoingGame(
         strategy=SelectedStrategy(),
-        save_file="game_state.json"
+        save_file="game_state.json",
+        map=selected_map
     )
     game.initialize_game()
     game.display_state()

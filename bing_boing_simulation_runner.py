@@ -27,7 +27,11 @@ def run_simulation(strategy: Strategy, num_games: int = 100) -> SimulationResult
     games: List[GameStats] = []
     
     for _ in range(num_games):
-        game = BingBoingGame(strategy=strategy, simulation_mode=True)
+        game = BingBoingGame(
+            strategy=strategy, 
+            simulation_mode=True,
+            map='./maps/yellow.csv'
+        )
         stats = game.simulate_game()
         games.append(stats)
     
@@ -75,14 +79,14 @@ def compare_strategies(num_games: int = 100) -> None:
     for result in results:
         table_data.append([
             result.strategy_name,
-            f"{result.avg_turns:.2f}",
-            f"{result.avg_boing_efficiency:.2f}%",
-            f"{result.avg_marks_per_turn:.2f}",
-            f"{result.avg_boing_count:.2f}"
+            f"{result.avg_turns:.4f}",
+            f"{result.avg_boing_efficiency:.4f}%",
+            f"{result.avg_marks_per_turn:.4f}",
+            f"{result.avg_boing_count:.4f}"
         ])
     
-    # Sort by average boing count
-    table_data.sort(key=lambda x: float(x[4]), reverse=True)
+    # Sort by average turns
+    table_data.sort(key=lambda x: float(x[1]), reverse=False)
     
     print("\nStrategy Comparison:")
     print(tabulate(table_data, headers=headers, tablefmt="grid"))

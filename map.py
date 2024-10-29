@@ -94,20 +94,3 @@ class FileMap(Map):
                         initial_state[(x, y)] = Tile(x, y, int(cell))
                 max_width = max(max_width, len(row))
         return initial_state, max_width, y + 1
-
-# Example usage with game_state
-file_map = FileMap('./maps/blue.csv')
-game_state = {
-    "1": NumberState.bing,
-    "5": NumberState.boing,
-    "10": NumberState.bing,
-    "22": NumberState.boing,
-}
-print("Loaded File Map with Game State:")
-file_map.display_map(game_state)
-
-# Display consecutive groups by grid coordinates
-consecutive_groups = file_map.find_consecutive_coordinates()
-print("Consecutive Groups by Coordinates:")
-for group in consecutive_groups:
-    print(group)
