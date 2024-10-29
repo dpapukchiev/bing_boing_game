@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict
+from number_state import NumberState
 
 @dataclass
 class GameStats:
@@ -11,4 +12,4 @@ class GameStats:
     boing_efficiency: float
     marks_per_turn: float
     won: bool
-    final_state: Dict[str, str]
+    final_state: Dict[str, NumberState]

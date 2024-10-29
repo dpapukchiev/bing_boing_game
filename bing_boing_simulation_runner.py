@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from typing import List
 import statistics
-from bing_boing_game import GameStats, BingBoingGame
+from bing_boing_game import BingBoingGame
 from strategy_interface import Strategy
+from game_stats import GameStats
+from number_state import NumberState
 
 @dataclass
 class SimulationResults:
@@ -11,6 +13,7 @@ class SimulationResults:
     games_played: int
     avg_turns: float
     avg_boing_efficiency: float
+    avg_boing_count: float
     avg_marks_per_turn: float
     win_rate: float
     best_game: GameStats
@@ -38,6 +41,7 @@ def run_simulation(strategy: Strategy, num_games: int = 100) -> SimulationResult
         games_played=num_games,
         avg_turns=statistics.mean(game.turns_taken for game in games),
         avg_boing_efficiency=statistics.mean(game.boing_efficiency for game in games),
+        avg_boing_count=statistics.mean(game.boing_count for game in games),
         avg_marks_per_turn=statistics.mean(game.marks_per_turn for game in games),
         win_rate=sum(1 for game in games if game.won) / num_games * 100,
         best_game=sorted_games[0],
@@ -59,11 +63,13 @@ def print_simulation_results(results: SimulationResults):
     print(f"  Turns: {results.best_game.turns_taken}")
     print(f"  Boing efficiency: {results.best_game.boing_efficiency:.2f}%")
     print(f"  Marks per turn: {results.best_game.marks_per_turn:.2f}")
+    print(f"  Boing count: {results.best_game.boing_count}")
     
     print("\nWorst Game:")
     print(f"  Turns: {results.worst_game.turns_taken}")
     print(f"  Boing efficiency: {results.worst_game.boing_efficiency:.2f}%")
     print(f"  Marks per turn: {results.worst_game.marks_per_turn:.2f}")
+    print(f"  Boing count: {results.worst_game.boing_count}")
 
 if __name__ == "__main__":
     # Example usage
