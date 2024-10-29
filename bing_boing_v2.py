@@ -178,32 +178,53 @@ def display_game_state():
     print(f"\nTotal bings (X): {bing_count}")
     print(f"Total boings (O): {boing_count}\n")
 
+def initialize_game():
+    """Initialize the game by either loading a saved state or starting fresh."""
+    global game_state
+    
+    if os.path.exists(SAVE_FILE):
+        while True:
+            choice = input("Saved game found. Load it? (y/n): ").strip().lower()
+            if choice in ['y', 'n']:
+                if choice == 'y':
+                    game_state = load_game_state()
+                else:
+                    game_state = {str(num): 'not_crossed' for num in get_all_numbers()}
+                    save_game_state()
+                break
+            print("Please enter 'y' or 'n'")
+    else:
+        game_state = {str(num): 'not_crossed' for num in get_all_numbers()}
+        save_game_state()
+
 def play_game():
     """Runs the game loop."""
+    print("\nEnter dice values as: red white1 white2 (e.g., '3 5 6')")
+    print("Enter 'q' to quit\n")
+    
     while True:
-        try:
-            red = int(input("Enter red die value: "))
-            white1 = int(input("Enter first white die value: "))
-            white2 = int(input("Enter second white die value: "))
-        except ValueError:
-            print("Please enter valid integer dice values.")
-            continue
-
-        playable_options = generate_options(red, white1, white2)
-        print("Playable options:", playable_options)
-
-        if playable_options:
-            best_choice = select_best_option(playable_options)
-            print("Best choice to maximize boings:", best_choice)
-            mark_number(best_choice)
-            display_game_state()
-        else:
-            print("No valid options available.")
-
-        if input("Roll again? (y/n): ").strip().lower() != 'y':
+        dice_input = input("Dice values: ").strip().lower()
+        if dice_input == 'q':
             break
+            
+        try:
+            red, white1, white2 = map(int, dice_input.split())
+            playable_options = generate_options(red, white1, white2)
+            print("Playable options:", playable_options)
+
+            if playable_options:
+                best_choice = select_best_option(playable_options)
+                print("Best choice to maximize boings:", best_choice)
+                mark_number(best_choice)
+                display_game_state()
+            else:
+                print("No valid options available.")
+                
+        except ValueError:
+            print("Invalid input. Please enter three numbers separated by spaces (e.g., '3 5 6')")
 
 # Initialize and start the game
-game_state = load_game_state()
+print("Welcome to Bing Boing!")
+initialize_game()
 display_game_state()
 play_game()
