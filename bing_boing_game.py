@@ -45,6 +45,8 @@ class BingBoingGame:
         self.save_file = save_file
         self.strategy = strategy or DefaultStrategy()
         self.game_state = None
+        self.turns_taken = 0
+        self.game_won = False
 
     def initialize_game(self):
         """Initialize the game by either loading a saved state or starting fresh"""
@@ -64,6 +66,8 @@ class BingBoingGame:
     def new_game(self):
         """Start a new game with fresh state"""
         self.game_state = {str(num): 'not_crossed' for num in self.get_all_numbers()}
+        self.turns_taken = 0
+        self.game_won = False
         self.save_game_state()
 
     def get_all_numbers(self):
@@ -72,13 +76,21 @@ class BingBoingGame:
 
     def save_game_state(self):
         """Save the current game state to a file"""
+        save_data = {
+            'game_state': self.game_state,
+            'turns_taken': self.turns_taken,
+            'game_won': self.game_won
+        }
         with open(self.save_file, "w") as file:
-            json.dump(self.game_state, file)
+            json.dump(save_data, file)
 
     def load_game_state(self):
         """Load game state from file"""
         with open(self.save_file, "r") as file:
-            self.game_state = json.load(file)
+            save_data = json.load(file)
+            self.game_state = save_data['game_state']
+            self.turns_taken = save_data.get('turns_taken', 0)  # Default to 0 for backward compatibility
+            self.game_won = save_data.get('game_won', False)  # Default to False for backward compatibility
 
     def mark_number(self, number, mark_type='bing'):
         """Mark a number and handle chain reactions"""
@@ -105,6 +117,27 @@ class BingBoingGame:
                             self.mark_number(num, 'boing')
                             updated = True
                             break
+
+    def check_win_condition(self):
+        """Check if the game is won by checking if no more moves are possible"""
+        # Get all remaining uncrossed numbers
+        remaining_numbers = {num for num in self.get_all_numbers() 
+                           if self.game_state[str(num)] == 'not_crossed'}
+        
+        if not remaining_numbers:
+            self.game_won = True
+            return True
+            
+        # Check if any remaining numbers can form valid pairs
+        # This is a simple check - you might want to make it more sophisticated
+        for option in self.OPTIONS:
+            uncrossed_in_option = sum(1 for num in option 
+                                    if self.game_state[str(num)] == 'not_crossed')
+            if uncrossed_in_option > 1:
+                return False
+                
+        self.game_won = True
+        return True
 
     def generate_options(self, red, white1, white2):
         """Generate all possible moves from dice values"""
@@ -135,6 +168,7 @@ class BingBoingGame:
         
         bing_count = sum(1 for state in self.game_state.values() if state == 'bing')
         boing_count = sum(1 for state in self.game_state.values() if state == 'boing')
+        remaining_count = sum(1 for state in self.game_state.values() if state == 'not_crossed')
         
         for option in self.OPTIONS:
             display_option = []
@@ -143,24 +177,11 @@ class BingBoingGame:
                 display_option.append(f"{num}[{'O' if state == 'boing' else 'X' if state == 'bing' else '...'}]")
             print(" | ".join(display_option))
 
-        print(f"\nTotal bings (X): {bing_count}")
-        print(f"Total boings (O): {boing_count}\n")
+        print(f"\nTurns taken: {self.turns_taken}")
+        print(f"Total bings (X): {bing_count}")
+        print(f"Total boings (O): {boing_count}")
+        print(f"Remaining numbers: {remaining_count}\n")
 
-    def play_turn(self, red, white1, white2):
-        """Play a single turn with the given dice values"""
-        playable_options = self.generate_options(red, white1, white2)
-        print("Playable options:", playable_options)
-
-        if playable_options:
-            best_choice = self.strategy.select_best_option(playable_options, self.game_state, self.OPTIONS)
-            print("Best choice to maximize boings:", best_choice)
-            self.mark_number(best_choice)
-            self.display_state()
-            return True
-        else:
-            print("No valid options available.")
-            return False
-        
     def roll_dice(self):
         """Simulate rolling the dice"""
         red = random.randint(1, 6)
@@ -168,7 +189,49 @@ class BingBoingGame:
         white2 = random.randint(1, 6)
         print(f"\nRolled: Red={red}, White1={white1}, White2={white2}")
         return red, white1, white2
-    
+
+    def play_turn(self, red, white1, white2):
+        """Play a single turn with the given dice values"""
+        if self.game_won:
+            print("Game is already won! Start a new game to play again.")
+            return False
+
+        playable_options = self.generate_options(red, white1, white2)
+        print("Playable options:", playable_options)
+
+        if playable_options:
+            best_choice = self.strategy.select_best_option(playable_options, self.game_state, self.OPTIONS)
+            print("Best choice to maximize boings:", best_choice)
+            self.mark_number(best_choice)
+            self.turns_taken += 1
+            self.display_state()
+            
+            if self.check_win_condition():
+                print(f"\n🎉 Congratulations! You've won the game in {self.turns_taken} turns! 🎉")
+                self.display_final_stats()
+            return True
+        else:
+            print("No valid options available.")
+            if self.check_win_condition():
+                print(f"\n🎉 Congratulations! You've won the game in {self.turns_taken} turns! 🎉")
+                self.display_final_stats()
+            return False
+
+    def display_final_stats(self):
+        """Display final game statistics"""
+        bing_count = sum(1 for state in self.game_state.values() if state == 'bing')
+        boing_count = sum(1 for state in self.game_state.values() if state == 'boing')
+        total_marked = bing_count + boing_count
+        
+        print("\nFinal Game Statistics:")
+        print("----------------------")
+        print(f"Total turns taken: {self.turns_taken}")
+        print(f"Numbers marked as bing (X): {bing_count}")
+        print(f"Numbers marked as boing (O): {boing_count}")
+        print(f"Total numbers marked: {total_marked}")
+        print(f"Boing efficiency ratio: {(boing_count / total_marked * 100):.1f}%")
+        print(f"Average marks per turn: {(total_marked / self.turns_taken):.1f}")
+
     def play_game(self):
         """Run the interactive game loop"""
         print("\nEnter dice values as three digits (e.g., '356')")
