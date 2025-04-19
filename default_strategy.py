@@ -1,5 +1,5 @@
 from strategy_interface import Strategy
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 from number_state import NumberState
 
 class DefaultStrategy(Strategy):
@@ -122,3 +122,71 @@ class DefaultStrategy(Strategy):
         """
         return sum(1 for num in option 
                   if game_state[str(num)] == NumberState.not_crossed)
+
+    def explain_selection(
+        self,
+        playable_options: Set[int],
+        game_state: Dict[str, NumberState],
+        options: List[List[int]]
+    ) -> Tuple[int, str]:
+        """
+        Select the best number and provide detailed explanation of the calculation.
+        
+        Args:
+            playable_options: Set of valid numbers that can be marked
+            game_state: Current state of all numbers in the game
+            options: List of all valid number combinations (lines)
+            
+        Returns:
+            Tuple of (selected_number, explanation_string)
+        """
+        # Track metrics for all options
+        option_metrics = {}
+        
+        for number in playable_options:
+            boing_potential = self._check_boing_potential(number, game_state, options)
+            min_uncrossed_count = self._get_min_uncrossed_line_count(number, game_state, options)
+            option_metrics[number] = {
+                'boing_potential': boing_potential,
+                'min_uncrossed_count': min_uncrossed_count
+            }
+        
+        # Now find the best option with same logic as select_best_option
+        best_option = None
+        max_boing_potential = -1
+        max_number = 0
+        fewest_uncrossed = float('inf')
+
+        for number, metrics in option_metrics.items():
+            boing_potential = metrics['boing_potential']
+            min_uncrossed_count = metrics['min_uncrossed_count']
+
+            # Update best option if this number is better
+            if (min_uncrossed_count < fewest_uncrossed or
+                (min_uncrossed_count == fewest_uncrossed and boing_potential > max_boing_potential) or
+                (min_uncrossed_count == fewest_uncrossed and boing_potential == max_boing_potential and number > max_number)):
+                
+                fewest_uncrossed = min_uncrossed_count
+                max_boing_potential = boing_potential
+                max_number = number
+                best_option = number
+
+        # If no best option found, use the highest available number
+        if best_option is None:
+            best_option = max(playable_options)
+            explanation = f"No optimal choice found. Selected highest number: {best_option}"
+            return best_option, explanation
+            
+        # Prepare detailed explanation
+        explanation = f"Selected {best_option} because:\n"
+        explanation += f"- Min uncrossed numbers in any line: {option_metrics[best_option]['min_uncrossed_count']}\n"
+        explanation += f"- Boing potential score: {option_metrics[best_option]['boing_potential']}\n"
+        
+        # Add comparison to other options
+        filtered_options = playable_options - {best_option}
+        if filtered_options:
+            explanation += "Comparison with other options:\n"
+            for number in sorted(filtered_options):
+                explanation += f"- Number {number}: min_uncrossed={option_metrics[number]['min_uncrossed_count']}, boing_potential={option_metrics[number]['boing_potential']}\n"
+                
+        return best_option, explanation

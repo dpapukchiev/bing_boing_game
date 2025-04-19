@@ -19,6 +19,7 @@ class BingBoingGame:
         self.game_state: Dict[str, NumberState] = {}
         self.turns_taken: int = 0
         self.game_won: bool = False
+        self._last_dice_formulas: Dict[int, List[str]] = {}  # Track formula for each generated number
 
     def initialize_game(self) -> None:
         """Initialize the game by either loading a saved state or starting fresh"""
@@ -114,30 +115,69 @@ class BingBoingGame:
     def generate_options(self, red: int, white1: int, white2: int) -> List[int]:
         """Generate all possible moves from dice values"""
         options = set()
+        option_formulas = {}  # Track formula for each generated number
         playable_numbers = {num for num in self.get_all_numbers() 
                            if self.game_state[str(num)] == NumberState.not_crossed}
 
         for white in [white1, white2]:
-            options.update([
-                red + white,
-                red - white,
-                white - red,
-                red * white,
-            ])
+            # Addition
+            result = red + white
+            options.add(result)
+            option_formulas[result] = option_formulas.get(result, []) + [f"{red} + {white}"]
             
-            if white != 0:
-                options.add(red // white)
-            if red != 0:
-                options.add(white // red)
+            # Subtraction (both ways)
+            result = red - white
+            if result > 0:
+                options.add(result)
+                option_formulas[result] = option_formulas.get(result, []) + [f"{red} - {white}"]
                 
-            options.update([
-                red ** white,
-                white ** red,
-                int(f"{red}{white}"),
-                int(f"{white}{red}")
-            ])
+            result = white - red
+            if result > 0:
+                options.add(result)
+                option_formulas[result] = option_formulas.get(result, []) + [f"{white} - {red}"]
+            
+            # Multiplication
+            result = red * white
+            options.add(result)
+            option_formulas[result] = option_formulas.get(result, []) + [f"{red} × {white}"]
+            
+            # Division (both ways)
+            if white != 0 and red % white == 0:
+                result = red // white
+                options.add(result)
+                option_formulas[result] = option_formulas.get(result, []) + [f"{red} ÷ {white}"]
+                
+            if red != 0 and white % red == 0:
+                result = white // red
+                options.add(result)
+                option_formulas[result] = option_formulas.get(result, []) + [f"{white} ÷ {red}"]
+                
+            # Exponents (both ways)
+            result = red ** white
+            if result <= 1000:  # Avoid huge numbers
+                options.add(result)
+                option_formulas[result] = option_formulas.get(result, []) + [f"{red}^{white}"]
+                
+            result = white ** red
+            if result <= 1000:  # Avoid huge numbers
+                options.add(result)
+                option_formulas[result] = option_formulas.get(result, []) + [f"{white}^{red}"]
+                
+            # Concatenation (both ways)
+            result = int(f"{red}{white}")
+            options.add(result)
+            option_formulas[result] = option_formulas.get(result, []) + [f"{red}{white} (concat)"]
+            
+            result = int(f"{white}{red}")
+            options.add(result)
+            option_formulas[result] = option_formulas.get(result, []) + [f"{white}{red} (concat)"]
 
-        return sorted(num for num in options if num > 0 and num in playable_numbers)
+        # Filter playable numbers and sort them
+        playable = [(num, option_formulas.get(num, [])) for num in sorted(options) if num in playable_numbers]
+        
+        # Return only the numbers for compatibility with existing code
+        self._last_dice_formulas = {num: formulas for num, formulas in playable}
+        return [num for num, _ in playable]
 
     def display_state(self) -> None:
         """Display the current game state"""
@@ -183,14 +223,22 @@ class BingBoingGame:
                 print("Game is already won! Start a new game to play again.")
             return False
 
+        self._last_dice_formulas = {}  # Reset the formula tracking
         playable_options = self.generate_options(red, white1, white2)
         if not self.simulation_mode:
             print("Playable options:", playable_options)
+            print("Dice formulas:")
+            for num in playable_options:
+                print(f"  {num}: {', '.join(self._last_dice_formulas.get(num, []))}")
 
         if playable_options:
-            best_choice = self.strategy.select_best_option(set(playable_options), self.game_state, self.OPTIONS)
+            # Get detailed calculation explanation along with the best choice
+            best_choice, explanation = self.strategy.explain_selection(set(playable_options), self.game_state, self.OPTIONS)
             if not self.simulation_mode:
-                print("Best choice to maximize boings:", best_choice)
+                print("Best choice:", best_choice)
+                print(f"Dice formula used: {', '.join(self._last_dice_formulas.get(best_choice, []))}")
+                print("Strategy reasoning:", explanation)
+            
             self.mark_number(best_choice)
             self.turns_taken += 1
             self.display_state()
